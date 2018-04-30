@@ -39,6 +39,8 @@ Log replication - leader will send RPC AppendEntries to sencondaries.
 - Secondaries should append AppendEntries to their log.
 - Log entries should be committed(added to state machine) based on RPC from leader. 
 
+I'm having problems understanding configuration changes and have therefor not included it here. I will ask you about this tomorrow, and then we can decide together if this is something that should be implimented.
+
 For this project I will try to put a lot of effort on my test script to make sure that my demo is working correctly. 
 I have still not 100% decided on having a demo using my userservice, or if I'm going to have a simple service. This will depend on the 
 amount of time i have left
