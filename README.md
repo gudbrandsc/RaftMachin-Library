@@ -1,9 +1,9 @@
 # project-5-gudbrandsc
 project-5-gudbrandsc created by GitHub Classroom
 
-For project 5 I will a Raft library that I can use for my user service(project 3/4). The reason that I want to make it a library is 
+For project 5 I will a RaftMachine library that I can use for my user service(project 3/4). The reason that I want to make it a library is 
 because it will make it easier to test different features as I develop it. For my demos before the deadline I will try to include my library
-to multible simple servers to demonstrate the different parts of raft(defined below). Since Raft aims at having a high level of understandability, I can 
+to multible simple servers to demonstrate the different parts of raft(defined below). Since RaftMachine aims at having a high level of understandability, I can 
 use most of my time implementing features instead of getting stuck on complex parts that I don't fully understand(like parts of Dynamo). 
 
 To "force" myself to work with this project incrementally throughout the time period I will have multiple benchmarks. These benchmarks might change depending on their difficulties and 
@@ -35,9 +35,9 @@ I also want to have a working demo of all the features above. This will be done 
 
 
 <b>05/10</b><br>
-Log replication - leader will send RPC AppendEntries to sencondaries. 
+RaftLog replication - leader will send RPC AppendEntries to sencondaries. 
 - Secondaries should append AppendEntries to their log.
-- Log entries should be committed(added to state machine) based on RPC from leader. 
+- RaftLog entries should be committed(added to state machine) based on RPC from leader. 
 
 I'm having problems understanding configuration changes and have therefor not included it here. I will ask you about this tomorrow, and then we can decide together if this is something that should be implimented.
 
