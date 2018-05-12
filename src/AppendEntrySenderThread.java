@@ -33,7 +33,7 @@ public class AppendEntrySenderThread implements Runnable {
             obj.put("prevLogIndex", raftMachine.getLastAppliedIndex());
             obj.put("prevLogTerm", raftMachine.getLastAppliedTerm());
         }
-        obj.put("leaderCommit", raftMachine.getCommitIndex());
+        obj.put("leaderCommit", raftMachine.getLastCommitIndex());
         JSONObject respData = serviceHelper.sendPostRequestAndReturnRespData(nodeInfo.getIp(), nodeInfo.getPort(), path, obj.toJSONString());
 
         if(respData != null){

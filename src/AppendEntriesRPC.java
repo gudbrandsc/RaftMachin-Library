@@ -51,6 +51,7 @@ public class AppendEntriesRPC {
                 responseObj.put("term", raftMachine.getCurrentTerm());
                 responseObj.put("success", true);
                 //todo check more conds before adding
+                raftMachine.commitLogEntries(leaderCommit);
                 if (gotData) {
                     if (raftMachine.getLogEntry(prevLogIndex + 1) == null) {
                         raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);
@@ -82,6 +83,8 @@ public class AppendEntriesRPC {
             if (prevLogTerm == raftMachine.getLastAppliedTerm() && (prevLogIndex == raftMachine.getLastAppliedIndex())) {
                 responseObj.put("term", raftMachine.getCurrentTerm());
                 responseObj.put("success", true);
+                raftMachine.commitLogEntries(leaderCommit);
+
                 if(gotData) {
                     if (raftMachine.getLogEntry(prevLogIndex + 1) == null) {
                         raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);

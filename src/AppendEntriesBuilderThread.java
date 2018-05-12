@@ -9,6 +9,7 @@ public class AppendEntriesBuilderThread implements Runnable {
     /** Constructor */
     public AppendEntriesBuilderThread(RaftMachine raftMachine) {
         this.raftMachine = raftMachine;
+        this.raftMachine.updateAllNodesAppendEntryIndex();
 
     }
 
@@ -56,4 +57,5 @@ public class AppendEntriesBuilderThread implements Runnable {
         }
         System.out.println("Stop sending RPC. Im no longer the leader");
     }
+
 }

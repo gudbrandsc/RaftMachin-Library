@@ -62,7 +62,7 @@ public class RequestVoteRPC {
         if(Integer.valueOf(requestData.get("term").toString()) > raftMachine.getCurrentTerm().intValue()) {
             if(Integer.valueOf(requestData.get("lastLogTerm").toString()) >= raftMachine.getLastAppliedTerm()){
                 if(Integer.valueOf(requestData.get("lastLogTerm").toString()) == raftMachine.getLastAppliedTerm()){
-                    if(Integer.valueOf(requestData.get("lastLogIndex").toString()) >= raftMachine.getCommitIndex()){
+                    if(Integer.valueOf(requestData.get("lastLogIndex").toString()) >= raftMachine.getLastCommitIndex()){
                         System.out.println("Log is up to date as mine");
                         raftMachine.updateTerm(Integer.valueOf(requestData.get("term").toString()));
                         respObj.put("voteGranted", true);

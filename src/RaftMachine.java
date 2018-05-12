@@ -2,15 +2,16 @@ import org.json.simple.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 enum MachineState {
-    FOLLOWER, LEADER, CANDIDATE;
+    FOLLOWER, LEADER, CANDIDATE
 }
 
 public class RaftMachine {
     private AtomicInteger currentTerm;
-    private int lastCommitIndex;
-    private int lastAppliedIndex;
-    private int lastAppliedTerm;
+    private volatile int lastCommitIndex;
+    private volatile int lastAppliedIndex;
+    private volatile int lastAppliedTerm;
     private AtomicInteger nextEntryIndex;
     private List<NodeInfo> raftMembers;
     private int candidateId;
@@ -68,6 +69,7 @@ public class RaftMachine {
     public void setAsTermLeader(){
         System.out.println("Setting myself to leader state");
         this.machineState = MachineState.LEADER;
+
         Thread t = new Thread(new AppendEntriesBuilderThread(this));
         t.start();
     }
@@ -82,6 +84,7 @@ public class RaftMachine {
     public void setAsCandidate(){
         System.out.println("Setting myself to candidate state");
         this.machineState = MachineState.CANDIDATE;
+
         RequestVoteRPC requestVoteRPC = new RequestVoteRPC(this);
         requestVoteRPC.sendRequestVoteRPC();
     }
@@ -97,9 +100,6 @@ public class RaftMachine {
         return this.machineState;
     }
 
-    public int getCommitIndex() {
-        return this.lastCommitIndex;
-    }
 
     public int getLastAppliedIndex() {
         return this.lastAppliedIndex;
@@ -167,6 +167,8 @@ public class RaftMachine {
         this.machineLog.add(newEntry);
         this.lastAppliedTerm = dataTerm;
         this.lastAppliedIndex = prevLogIndex + 1;
+        this.nextEntryIndex.incrementAndGet();
+
         System.out.println("Added entry with index: " + this.lastAppliedIndex + " and term " + dataTerm);
         return true;
     }
@@ -201,6 +203,36 @@ public class RaftMachine {
             }
         }
         return null;
+    }
+
+    public void commitLogEntries(int leaderCommitIndex){
+        System.out.println("Committing all entries to index: " + leaderCommitIndex);
+        System.out.println(this.lastCommitIndex + "Is my last committed");
+        for(LogEntry logEntry: machineLog){
+            if(logEntry.getEntryIndex() <= leaderCommitIndex){
+                if(!logEntry.isCommited()) {
+                    logEntry.setCommited();
+                    if (logEntry.getEntryIndex() > this.lastCommitIndex) {
+                        this.lastCommitIndex = logEntry.getEntryIndex();
+                        System.out.println("last applied index value : " + this.lastAppliedIndex);
+                        System.out.println("Committed index: " + logEntry.getEntryIndex());
+                    }
+                }
+            }
+        }
+    }
+
+    public void updateAllNodesAppendEntryIndex(){
+        for(NodeInfo info : this.raftMembers){
+            if(info.getCandidateId() != this.candidateId) {
+                if (lastAppliedIndex == -1) {
+                    info.setAppendIndex(0);
+
+                } else {
+                    info.setAppendIndex(lastAppliedIndex + 1);
+                }
+            }
+        }
     }
 }
 
