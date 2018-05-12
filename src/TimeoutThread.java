@@ -20,6 +20,7 @@ public class TimeoutThread implements Runnable {
      */
     @Override
     public void run() {
+        System.out.println("inside timeout thread");
         this.raftMachine.resetTimer();
         try {
             TimeUnit.SECONDS.sleep(2); //Wait for server to start up
