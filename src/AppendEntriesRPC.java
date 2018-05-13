@@ -36,6 +36,7 @@ public class AppendEntriesRPC {
             responseObj.put("success", false);
         } else if (term > raftMachine.getCurrentTerm().intValue()) { //If leader receives a append entry rpc
             if (raftMachine.isTermLeader()) {
+                System.out.println("[L] Received a append entry RPC with a higher term then current term ");
                 raftMachine.setAsFollower();
             }
 
@@ -43,9 +44,10 @@ public class AppendEntriesRPC {
                 raftMachine.updateLeaderInfo(candidateId);
             }
 
-            System.out.println("Term from request was higher then the current term.");
             System.out.println("Updating to term: " + term);
             raftMachine.updateTerm(term);
+
+
             if (prevLogTerm == raftMachine.getLastAppliedTerm() && (prevLogIndex == raftMachine.getLastAppliedIndex() )) {
                 responseObj.put("term", raftMachine.getCurrentTerm());
                 responseObj.put("success", true);
@@ -69,13 +71,6 @@ public class AppendEntriesRPC {
                 responseObj.put("success", false);
             }
             //TODO add to log
-
-
-
-
-
-
-
         } else {
             if (candidateId != raftMachine.getLeaderId()) {
                 raftMachine.updateLeaderInfo(candidateId);

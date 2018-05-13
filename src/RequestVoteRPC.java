@@ -44,14 +44,14 @@ public class RequestVoteRPC {
 
         System.out.println("Number of votes received: " + numberOfVotes.intValue());
         float res = (float)numberOfVotes.intValue()/(float)raftMachine.getMemberListSize();
-        System.out.println("I got " + res*100 + "% of the votes");
+        System.out.println("[F] Received " + res*100 + "% of the votes");
         if(res > 0.5){
-            raftMachine.setAsTermLeader();
             System.out.println("I'm now the leader for term: " + newTerm);
+            raftMachine.setAsTermLeader();
         } else{
+            System.out.println("I did not get enough votes to become leader, reset state to follower...");
             raftMachine.setAsFollower();
             //TODO I can prob remove this
-            System.out.println("I did not get enough votes to become leader, reset state to follower...");
         }
     }
 
