@@ -20,7 +20,7 @@ public class TimeoutThread implements Runnable {
      */
     @Override
     public void run() {
-        System.out.println("inside timeout thread");
+        System.out.println("[F] Starting timeout thread...");
         this.raftMachine.resetTimer();
         try {
             TimeUnit.SECONDS.sleep(2); //Wait for server to start up
@@ -29,8 +29,8 @@ public class TimeoutThread implements Runnable {
                 TimeUnit.SECONDS.sleep(random);
 
                 if(!this.raftMachine.getTimeoutSwitch()){
+                    System.out.println("[F]Leader timed out, starting election for new term..." );
                     this.raftMachine.setAsCandidate();
-                    System.out.println("Leader timed out, starting election for new term..." );
                 }else{
                     this.raftMachine.newHeartBeat();
                 }

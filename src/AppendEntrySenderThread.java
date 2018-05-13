@@ -18,13 +18,13 @@ public class AppendEntrySenderThread implements Runnable {
     /** Run method that sends a write request to a secondary */
     @Override
     public void run() {
-        System.out.println("I want to send this index to the node ++++ " + nodeInfo.getAppendIndex().intValue());
         LogEntry entry = raftMachine.getLogEntry(nodeInfo.getAppendIndex().intValue());
         JSONObject obj = new JSONObject();
         obj.put("term", raftMachine.getCurrentTerm().intValue());
         obj.put("candidateId", raftMachine.getCandidateId());
 
         if(entry != null) {
+            System.out.println("[L] Sending append entry with data for index: " + nodeInfo.getAppendIndex().intValue());
             obj.put("prevLogIndex", entry.getPrevLogIndex());
             obj.put("prevLogTerm", entry.getPrevLogTerm());
             obj.put("data", entry.getData());
@@ -33,6 +33,7 @@ public class AppendEntrySenderThread implements Runnable {
             obj.put("prevLogIndex", raftMachine.getLastAppliedIndex());
             obj.put("prevLogTerm", raftMachine.getLastAppliedTerm());
         }
+
         obj.put("leaderCommit", raftMachine.getLastCommitIndex());
         JSONObject respData = serviceHelper.sendPostRequestAndReturnRespData(nodeInfo.getIp(), nodeInfo.getPort(), path, obj.toJSONString());
 
@@ -42,25 +43,25 @@ public class AppendEntrySenderThread implements Runnable {
                 synchronized (raftMachine){
                     if(raftMachine.isTermLeader()) {
                         raftMachine.setAsFollower();
-                        System.out.println("Received a response with a greater term. Reset back as a follower... ");
+                        System.out.println("[L] Received a response with a greater term. \n Resetting back as a follower state... ");
                     }
                     notifyAll();
                 }
 
             }else if (respData.get("success").equals(false)){
-                System.out.println("Success == false");
+                System.out.println("Append entry was not success, decrement appendIndex for node " + nodeInfo.getIp()+":"+nodeInfo.getPort());
                 nodeInfo.getAppendIndex().decrementAndGet();
             }else if(respData.get("success").equals(true)){
                 if(obj.containsKey("data")){
-                    System.out.println("Replicated data to node " + nodeInfo.getIp() + ":" + nodeInfo.getPort());
+                    System.out.println("Replicated entry with index "+ nodeInfo.getAppendIndex() + " to node " + nodeInfo.getIp() + ":" + nodeInfo.getPort());
                     nodeInfo.getAppendIndex().incrementAndGet();
                     entry.getSuccessReplication().incrementAndGet();
-                }else{
-                    System.out.println("True resp for empty request");
+                }else{ //TODO Remove
+                 //   System.out.println("True resp for empty request");
                 }
             }
         }else{
-            System.out.println(nodeInfo.getIp() + ":" + nodeInfo.getPort() + " did not respond to heart beat..");
+            System.out.println("[L]"+nodeInfo.getIp() + ":" + nodeInfo.getPort() + " did not respond to heart beat..");
         }
     }
 }

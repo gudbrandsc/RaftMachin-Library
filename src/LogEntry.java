@@ -48,7 +48,6 @@ public class LogEntry {
     public void setCommited(){
         this.isCommitted = true;
         this.notifier.countDown();
-        System.out.println("Countdown :" + this.notifier.getCount());
     }
 
     public boolean isCommitted() {

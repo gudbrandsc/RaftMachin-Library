@@ -16,21 +16,16 @@ public class AppendEntriesBuilderThread implements Runnable {
     /** Run method that sends a write request to a secondary */
     @Override
     public void run() {
-        System.out.println("Started sending append entry RPC's as leader ");
+        System.out.println("[L] Started sending append entry RPC's..");
         List<NodeInfo> nodeInfoListCopy = raftMachine.getRaftMembersCopy();
         String path = "/appendentry";
         while (raftMachine.isTermLeader()){
-
-            System.out.println("Last commit index: " + raftMachine.getLastCommitIndex());
             LogEntry nextCommitEntry = raftMachine.getLogEntry(raftMachine.getLastCommitIndex() + 1);
             if(nextCommitEntry != null){
-                System.out.println("successes: " + nextCommitEntry.getSuccessReplication().intValue());
-                System.out.println("res: " + (float)nextCommitEntry.getSuccessReplication().intValue()/(float)nodeInfoListCopy.size());
-
                 if((float)nextCommitEntry.getSuccessReplication().intValue()/(float)nodeInfoListCopy.size() > 0.5) {
                     nextCommitEntry.setCommited();
                     raftMachine.incrementLastCommitted();
-                    System.out.println("Committed new value");
+                    System.out.println("[L]Committed entry with index: " + raftMachine.getLastCommitIndex());
                 }
             }
 

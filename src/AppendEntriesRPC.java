@@ -46,19 +46,22 @@ public class AppendEntriesRPC {
             System.out.println("Term from request was higher then the current term.");
             System.out.println("Updating to term: " + term);
             raftMachine.updateTerm(term);
-            System.out.println("Inside top " + prevLogTerm + " ==  " + raftMachine.getLastAppliedTerm() + " && " + prevLogIndex + " == " + raftMachine.getLastAppliedIndex());
             if (prevLogTerm == raftMachine.getLastAppliedTerm() && (prevLogIndex == raftMachine.getLastAppliedIndex() )) {
                 responseObj.put("term", raftMachine.getCurrentTerm());
                 responseObj.put("success", true);
                 //todo check more conds before adding
-                raftMachine.commitLogEntries(leaderCommit);
+
+                if(leaderCommit > raftMachine.getLastCommitIndex()) {
+                    raftMachine.commitLogEntries(leaderCommit);
+                }
+
                 if (gotData) {
                     if (raftMachine.getLogEntry(prevLogIndex + 1) == null) {
                         raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);
                     } else if (raftMachine.getLogEntry(prevLogIndex + 1) != null && raftMachine.getLogEntry(prevLogIndex + 1).getEntryTerm() < dataTerm) {
                         raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);
                     } else {
-                        System.out.println("Got data for term " + data + " and index " + prevLogIndex + 1 + " But I got it allready");
+                        System.out.println("Got data for term " + data + " and index " + prevLogIndex + 1 + " But I got it already");
                     }
                 }
             } else {
@@ -78,13 +81,12 @@ public class AppendEntriesRPC {
                 raftMachine.updateLeaderInfo(candidateId);
             }
 
-            System.out.println(requestJson.toJSONString() + "Data received");
-            System.out.println("If down -- "+prevLogTerm + " == " + raftMachine.getLastAppliedTerm() + " && " + prevLogIndex + " == " + raftMachine.getLastAppliedIndex());
             if (prevLogTerm == raftMachine.getLastAppliedTerm() && (prevLogIndex == raftMachine.getLastAppliedIndex())) {
                 responseObj.put("term", raftMachine.getCurrentTerm());
                 responseObj.put("success", true);
-                raftMachine.commitLogEntries(leaderCommit);
-
+                if(leaderCommit > raftMachine.getLastCommitIndex()) {
+                    raftMachine.commitLogEntries(leaderCommit);
+                }
                 if(gotData) {
                     if (raftMachine.getLogEntry(prevLogIndex + 1) == null) {
                         raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);

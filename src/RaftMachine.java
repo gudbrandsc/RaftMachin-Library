@@ -67,7 +67,7 @@ public class RaftMachine {
         this.timeoutSwitch = false;
     }
     public void setAsTermLeader(){
-        System.out.println("Setting myself to leader state");
+        System.out.println("Setting myself to leader state...");
         this.machineState = MachineState.LEADER;
 
         Thread t = new Thread(new AppendEntriesBuilderThread(this));
@@ -75,14 +75,14 @@ public class RaftMachine {
     }
 
     public void setAsFollower(){
-        System.out.println("Setting myself to follower state");
+        System.out.println("Setting myself to follower state...");
         this.machineState = MachineState.FOLLOWER;
         Thread t = new Thread(new TimeoutThread(this));
         t.start();
     }
 
     public void setAsCandidate(){
-        System.out.println("Setting myself to candidate state");
+        System.out.println("Setting myself to candidate state...");
         this.machineState = MachineState.CANDIDATE;
 
         RequestVoteRPC requestVoteRPC = new RequestVoteRPC(this);
@@ -163,20 +163,21 @@ public class RaftMachine {
     }
 
     public synchronized boolean appendEntryToLog(JSONObject obj, int dataTerm, int prevLogIndex, int lastAppliedTerm){
+        //TODO CHECK IF LEADER and redirect
         LogEntry newEntry =  new LogEntry(prevLogIndex + 1, dataTerm, obj, lastAppliedTerm, prevLogIndex);
         this.machineLog.add(newEntry);
         this.lastAppliedTerm = dataTerm;
         this.lastAppliedIndex = prevLogIndex + 1;
         this.nextEntryIndex.incrementAndGet();
 
-        System.out.println("Added entry with index: " + this.lastAppliedIndex + " and term " + dataTerm);
+        System.out.println("[F] Added entry with index: " + this.lastAppliedIndex + " and term " + dataTerm);
         return true;
     }
 
     private synchronized LogEntry createNewLogEntry(JSONObject obj){
         LogEntry newEntry =  new LogEntry(this.nextEntryIndex.intValue(), getCurrentTerm().intValue(), obj, lastAppliedTerm, lastAppliedIndex);
         this.machineLog.add(newEntry);
-        System.out.println("Added entry with index: " + this.nextEntryIndex + " and term " + getCurrentTerm().intValue() + " prev index "+ lastAppliedIndex);
+        System.out.println("[L] Added entry with index: " + this.nextEntryIndex + " and term " + getCurrentTerm().intValue() + " prev index "+ lastAppliedIndex);
         //Updated value for next entry
         newEntry.getSuccessReplication().incrementAndGet();
         this.lastAppliedIndex = this.nextEntryIndex.intValue();
@@ -188,10 +189,9 @@ public class RaftMachine {
     public boolean addDataToLog(JSONObject obj) throws InterruptedException {
         //TODO check if leader and redirect ok
         LogEntry newEntry = createNewLogEntry(obj);
-        System.out.println("Start waiting");
+        System.out.println("[L] Adding entry to log, waiting for it to be committed...");
         newEntry.getNotifier().await();
-        System.out.println("Finished waiting..");
-
+        System.out.println("[L] Entry committed, respond back to client..");
 
         return true;
     }
@@ -207,14 +207,12 @@ public class RaftMachine {
 
     public void commitLogEntries(int leaderCommitIndex){
         System.out.println("Committing all entries to index: " + leaderCommitIndex);
-        System.out.println(this.lastCommitIndex + "Is my last committed");
         for(LogEntry logEntry: machineLog){
             if(logEntry.getEntryIndex() <= leaderCommitIndex){
                 if(!logEntry.isCommited()) {
                     logEntry.setCommited();
                     if (logEntry.getEntryIndex() > this.lastCommitIndex) {
                         this.lastCommitIndex = logEntry.getEntryIndex();
-                        System.out.println("last applied index value : " + this.lastAppliedIndex);
                         System.out.println("Committed index: " + logEntry.getEntryIndex());
                     }
                 }
@@ -227,7 +225,6 @@ public class RaftMachine {
             if(info.getCandidateId() != this.candidateId) {
                 if (lastAppliedIndex == -1) {
                     info.setAppendIndex(0);
-
                 } else {
                     info.setAppendIndex(lastAppliedIndex + 1);
                 }
