@@ -1,6 +1,15 @@
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 enum MachineState {
@@ -21,8 +30,10 @@ public class RaftMachine {
     private  int leaderId;
     private List<LogEntry> machineLog;
     private MachineState machineState;
+    private JSONArray committedEntries;
+    private String storageFile;
 
-    public RaftMachine(int candidateId){
+    public RaftMachine(int candidateId, String storageFile, CountDownLatch latch){
         this.currentTerm = new AtomicInteger(0);
         this.lastAppliedIndex = -1;
         this.lastCommitIndex = -1;
@@ -31,6 +42,9 @@ public class RaftMachine {
         this.candidateId = candidateId;
         this.raftMembers = new ArrayList<>();
         this.machineLog = new ArrayList<>();
+        this.committedEntries = new JSONArray();
+        this.storageFile = storageFile;
+        checkIfFileExist(latch);
     }
 
     public AtomicInteger getCurrentTerm() {
@@ -108,6 +122,7 @@ public class RaftMachine {
     public int getLastCommitIndex() {
         return lastCommitIndex;
     }
+
     public void incrementLastCommitted(){
         this.lastCommitIndex++;
     }
@@ -210,6 +225,7 @@ public class RaftMachine {
         for(LogEntry logEntry: machineLog){
             if(logEntry.getEntryIndex() <= leaderCommitIndex){
                 if(!logEntry.isCommited()) {
+                    writeCommittedEntriesToFile(logEntry);
                     logEntry.setCommited();
                     if (logEntry.getEntryIndex() > this.lastCommitIndex) {
                         this.lastCommitIndex = logEntry.getEntryIndex();
@@ -230,6 +246,100 @@ public class RaftMachine {
                 }
             }
         }
+    }
+    private JSONObject buildStorageObject(LogEntry entry){
+        JSONObject obj = new JSONObject();
+        obj.put("data", entry.getData());
+        obj.put("index", entry.getEntryIndex());
+        obj.put("term", entry.getEntryTerm());
+        obj.put("prevlogindex",entry.getPrevLogIndex());
+        obj.put("prevlogterm", entry.getPrevLogTerm());
+        return obj;
+    }
+
+    public synchronized void writeCommittedEntriesToFile(LogEntry entry){
+        this.committedEntries.add(buildStorageObject(entry));
+        JSONObject writeData = new JSONObject();
+        writeData.put("storagedata",this.committedEntries);
+        File test = new File(this.storageFile);
+        FileWriter f2 = null;
+        try {
+            f2 = new FileWriter(test, false);
+            f2.write(writeData.toJSONString());
+            f2.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean checkIfFileExist(CountDownLatch latch){
+        if(Files.exists(Paths.get(storageFile))) {
+            System.out.println("Data existing, adding committed data..");
+            readAndAddData();
+            latch.countDown();
+            return true;
+        }
+        System.out.println("No saved data to add...");
+        latch.countDown();
+        return false;
+    }
+    private void readAndAddData(){
+        JSONParser parser = new JSONParser();
+
+        try {
+            Object obj = parser.parse(new FileReader(storageFile));
+            JSONObject jsonObject =  (JSONObject) obj;
+            JSONArray storagedata = (JSONArray) jsonObject.get("storagedata");
+            Iterator<JSONObject> iterator = storagedata.iterator();
+            while (iterator.hasNext()) {
+                JSONObject entry = iterator.next();
+                int index = Integer.valueOf(entry.get("index").toString());
+                int term = Integer.valueOf(entry.get("term").toString());
+                JSONObject data =  (JSONObject) entry.get("data");
+                int prevlogterm = Integer.valueOf(entry.get("prevlogterm").toString());
+                int prevlogindex = Integer.valueOf(entry.get("prevlogindex").toString());
+                System.out.println("Adding index: "+ index + " term " + term);
+                LogEntry readEntry = new LogEntry(index, term, data, prevlogterm, prevlogindex);
+                readEntry.setCommited();
+                addReadData(readEntry);
+            }
+            this.nextEntryIndex.set(this.lastAppliedIndex + 1);
+            System.out.println("-------------------------------");
+            System.out.println("Last commited:  " + this.lastCommitIndex);
+            System.out.println("Last applied term: " + this.lastAppliedTerm);
+            System.out.println("Last applied index: " + this.lastAppliedIndex);
+            System.out.println("Next entry index: " + this.nextEntryIndex.intValue());
+            System.out.println("-------------------------------");
+
+
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addReadData(LogEntry entry){
+        if(entry.getEntryIndex() > this.lastAppliedIndex){
+            this.lastAppliedIndex = entry.getEntryIndex();
+            System.out.println("Last applied index updated to: " + this.lastAppliedIndex);
+
+        }
+
+        if(entry.getEntryTerm() > this.lastAppliedTerm){
+            this.lastAppliedTerm = entry.getEntryTerm();
+            System.out.println("last applied term updated to: " + this.lastAppliedTerm);
+
+        }
+
+        if(this.lastCommitIndex < entry.getEntryIndex()){
+            this.lastCommitIndex =  entry.getEntryIndex();
+            System.out.println("last commited updated to: " + this.lastCommitIndex);
+        }
+        this.committedEntries.add(buildStorageObject(entry));
+        this.machineLog.add(entry);
     }
 }
 

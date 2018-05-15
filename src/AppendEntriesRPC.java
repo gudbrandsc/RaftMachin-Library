@@ -34,44 +34,17 @@ public class AppendEntriesRPC {
             System.out.println("Term in request: " + term + " but I'm on term " + raftMachine.getCurrentTerm().intValue());
             responseObj.put("term", raftMachine.getCurrentTerm());
             responseObj.put("success", false);
-        } else if (term > raftMachine.getCurrentTerm().intValue()) { //If leader receives a append entry rpc
-            if (raftMachine.isTermLeader()) {
-                System.out.println("[L] Received a append entry RPC with a higher term then current term ");
-                raftMachine.setAsFollower();
-            }
-
-            if (candidateId != raftMachine.getLeaderId()) { // If term is greater than currant term and candidateID is not the same as current
-                raftMachine.updateLeaderInfo(candidateId);
-            }
-
-            System.out.println("Updating to term: " + term);
-            raftMachine.updateTerm(term);
-
-
-            if (prevLogTerm == raftMachine.getLastAppliedTerm() && (prevLogIndex == raftMachine.getLastAppliedIndex() )) {
-                responseObj.put("term", raftMachine.getCurrentTerm());
-                responseObj.put("success", true);
-                //todo check more conds before adding
-
-                if(leaderCommit > raftMachine.getLastCommitIndex()) {
-                    raftMachine.commitLogEntries(leaderCommit);
-                }
-
-                if (gotData) {
-                    if (raftMachine.getLogEntry(prevLogIndex + 1) == null) {
-                        raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);
-                    } else if (raftMachine.getLogEntry(prevLogIndex + 1) != null && raftMachine.getLogEntry(prevLogIndex + 1).getEntryTerm() < dataTerm) {
-                        raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);
-                    } else {
-                        System.out.println("Got data for term " + data + " and index " + prevLogIndex + 1 + " But I got it already");
-                    }
-                }
-            } else {
-                responseObj.put("term", raftMachine.getCurrentTerm());
-                responseObj.put("success", false);
-            }
-            //TODO add to log
         } else {
+            if (term > raftMachine.getCurrentTerm().intValue()) { //If leader receives a append entry rpc
+                if (raftMachine.isTermLeader()) {
+                    System.out.println("[L] Received a append entry RPC with a higher term then current term ");
+                    raftMachine.setAsFollower();
+                }
+
+                System.out.println("Updating to term: " + term);
+                raftMachine.updateTerm(term);
+            }
+
             if (candidateId != raftMachine.getLeaderId()) {
                 raftMachine.updateLeaderInfo(candidateId);
             }
@@ -79,18 +52,15 @@ public class AppendEntriesRPC {
             if (prevLogTerm == raftMachine.getLastAppliedTerm() && (prevLogIndex == raftMachine.getLastAppliedIndex())) {
                 responseObj.put("term", raftMachine.getCurrentTerm());
                 responseObj.put("success", true);
-                if(leaderCommit > raftMachine.getLastCommitIndex()) {
+                if (leaderCommit > raftMachine.getLastCommitIndex()) {
                     raftMachine.commitLogEntries(leaderCommit);
                 }
-                if(gotData) {
+
+                if (gotData) {
                     if (raftMachine.getLogEntry(prevLogIndex + 1) == null) {
                         raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);
-
-
                     } else if ((raftMachine.getLogEntry(prevLogIndex + 1) != null) && (raftMachine.getLogEntry(prevLogIndex + 1).getEntryTerm() < dataTerm)) {
                         raftMachine.appendEntryToLog(data, dataTerm, prevLogIndex, prevLogTerm);
-                    } else {
-                        System.out.println("Got data for term " + data + " and index " + prevLogIndex + 1 + "But I got it already");
                     }
                 }
             } else {
@@ -99,7 +69,6 @@ public class AppendEntriesRPC {
             }
         }
         return responseObj.toJSONString();
-
     }
 
 }

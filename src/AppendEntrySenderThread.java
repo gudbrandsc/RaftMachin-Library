@@ -45,7 +45,6 @@ public class AppendEntrySenderThread implements Runnable {
                         raftMachine.setAsFollower();
                         System.out.println("[L] Received a response with a greater term. \n Resetting back as a follower state... ");
                     }
-                    notifyAll();
                 }
 
             }else if (respData.get("success").equals(false)){

@@ -23,6 +23,8 @@ public class AppendEntriesBuilderThread implements Runnable {
             LogEntry nextCommitEntry = raftMachine.getLogEntry(raftMachine.getLastCommitIndex() + 1);
             if(nextCommitEntry != null){
                 if((float)nextCommitEntry.getSuccessReplication().intValue()/(float)nodeInfoListCopy.size() > 0.5) {
+                    raftMachine.writeCommittedEntriesToFile(nextCommitEntry);
+                    //Add entry to json array, and write to file
                     nextCommitEntry.setCommited();
                     raftMachine.incrementLastCommitted();
                     System.out.println("[L]Committed entry with index: " + raftMachine.getLastCommitIndex());
