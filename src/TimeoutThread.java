@@ -1,3 +1,5 @@
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
@@ -25,11 +27,11 @@ public class TimeoutThread implements Runnable {
         try {
             TimeUnit.SECONDS.sleep(2); //Wait for server to start up
             while(this.raftMachine.getMachineState().equals(MachineState.FOLLOWER)){
-              int random = 5 + (int)(Math.random() * ((5 - 10) + 1));
+              int random = 1 + (int)(Math.random() * ((1 - 2) + 1));
                 TimeUnit.SECONDS.sleep(random);
 
                 if(!this.raftMachine.getTimeoutSwitch()){
-                    System.out.println("[F]Leader timed out, starting election for new term..." );
+                    System.out.println("[F] Leader timed out, starting election for new term..." );
                     this.raftMachine.setAsCandidate();
                 }else{
                     this.raftMachine.newHeartBeat();

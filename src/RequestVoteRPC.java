@@ -1,3 +1,5 @@
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 
 import javax.servlet.http.HttpServletRequest;
@@ -10,6 +12,7 @@ public class RequestVoteRPC {
     private AtomicInteger numberOfVotes;
     private RaftMachine raftMachine;
 
+
     public RequestVoteRPC(RaftMachine raftMachine) {
         this.raftMachine = raftMachine;
     }
@@ -18,7 +21,7 @@ public class RequestVoteRPC {
         numberOfVotes = new AtomicInteger( 1);
         List<Thread> replicationThreads = new ArrayList<>();
         int newTerm = raftMachine.getCurrentTerm().incrementAndGet();
-        System.out.println("Sending election request for term: " + newTerm);
+        System.out.println("[C] Sending election request for term: " + newTerm);
         for(NodeInfo info : raftMachine.getRaftMembersCopy()) {
             if (info.getCandidateId() != raftMachine.getCandidateId()) {
                 JSONObject obj = new JSONObject();
@@ -26,9 +29,8 @@ public class RequestVoteRPC {
                 obj.put("candidateId", raftMachine.getCandidateId());
                 obj.put("lastLogIndex", raftMachine.getLastAppliedIndex());
                 obj.put("lastLogTerm", raftMachine.getLastAppliedTerm());
-                String path = "/requestvote";
 
-                Thread t = new Thread(new RequestVoteThread(info.getIp(), info.getPort(), path, obj.toJSONString(), this.numberOfVotes));
+                Thread t = new Thread(new RequestVoteThread(info.getIp(), info.getPort(), raftMachine.getRequestVotePath(), obj.toJSONString(), this.numberOfVotes));
                 t.start();
                 replicationThreads.add(t);
             }
@@ -42,50 +44,55 @@ public class RequestVoteRPC {
             }
         }
 
-        System.out.println("Number of votes received: " + numberOfVotes.intValue());
+        System.out.println("[C] Number of votes received: " + numberOfVotes.intValue());
         float res = (float)numberOfVotes.intValue()/(float)raftMachine.getMemberListSize();
-        System.out.println("[F] Received " + res*100 + "% of the votes");
+        System.out.println("[C] Received " + res*100 + "% of the votes");
         if(res > 0.5){
-            System.out.println("I'm now the leader for term: " + newTerm);
+            System.out.println("[C] I'm now the leader for term: " + newTerm);
             raftMachine.setAsTermLeader();
         } else{
-            System.out.println("I did not get enough votes to become leader, reset state to follower...");
+            System.out.println("[C] Did not get enough votes to become leader, reset back to follower state...");
             raftMachine.setAsFollower();
             //TODO I can prob remove this
         }
     }
 
-    public String validateVoteRequest(JSONObject requestData){
+    public synchronized String validateVoteRequest(JSONObject requestData){
 //        System.out.println(requestData.get("term").toString() +" > "+ raftMachine.getCurrentTerm().intValue());
         JSONObject respObj = new JSONObject();
+        if(raftMachine.isTermLeader()){
+            raftMachine.setAsFollower();
+        }
         raftMachine.resetTimer();
+        System.out.println("[F] Got election request for term: " + requestData.get("term"));
         if(Integer.valueOf(requestData.get("term").toString()) > raftMachine.getCurrentTerm().intValue()) {
             if(Integer.valueOf(requestData.get("lastLogTerm").toString()) >= raftMachine.getLastAppliedTerm()){
                 if(Integer.valueOf(requestData.get("lastLogTerm").toString()) == raftMachine.getLastAppliedTerm()){
                     if(Integer.valueOf(requestData.get("lastLogIndex").toString()) >= raftMachine.getLastCommitIndex()){
-                        System.out.println("Log is up to date as mine");
+
+                        System.out.println("[F] Last log index from candidate is equal or greater than mine..");
                         raftMachine.updateTerm(Integer.valueOf(requestData.get("term").toString()));
                         respObj.put("voteGranted", true);
                     }else{
-                        System.out.println("Same term, lower index");
+                        System.out.println("[F] Same term for last applied log, but lower last applied index");
                         respObj.put("voteGranted", false);
                     }
                 }else{
-                    System.out.println("Log term for last applied was higher but not equal");
-
+                    System.out.println("[F] Candidates last applied log term was greater than mine");
                     raftMachine.updateTerm(Integer.valueOf(requestData.get("term").toString()));
                     respObj.put("voteGranted", true);
                 }
             }else{
-                System.out.println("log term last applied to low");
+                System.out.println("[F] Candidates last applied log term was lower than mine");
                 respObj.put("voteGranted", false);
             }
         }else {
-            System.out.println("Term lower than currant term");
+            System.out.println("[F] Candidates term was lower or equal to my current term");
             respObj.put("voteGranted", false);
         }
+        System.out.println("[F] Vote granted: " + respObj.get("voteGranted"));
+
         respObj.put("term", raftMachine.getCurrentTerm());
-        System.out.println("Resp for vote: " + respObj.toJSONString());
         return respObj.toJSONString();
     }
 

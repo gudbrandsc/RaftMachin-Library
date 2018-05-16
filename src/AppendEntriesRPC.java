@@ -1,16 +1,27 @@
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-
+/**
+ * @author gudbrandschistad
+ * Class used to handle append entry RPC.
+ * @see AppendEntrySenderThread for info about incomming append RPC data
+ */
 public class AppendEntriesRPC {
     private RaftMachine raftMachine;
 
+    /** Constructor
+     * @param raftMachine instance of the nodes raft machine.
+     */
     public AppendEntriesRPC(RaftMachine raftMachine) {
         this.raftMachine = raftMachine;
     }
-    //Make sure that request comes from leader
 
-
-    public String buildResponse(JSONObject requestJson) {
+    /**
+     * Method used to build a response from the received Append entry RPC.
+     * If the RPC contains any data, then the data will be added to log.
+     * If the committed index received in RPC is greater than last committed index, then commit
+     * all log entries with a lower index than received commit index.
+     * @param requestJson JSON object received from the leader.
+     * @return JSON format string. */
+    public String buildAppendEntriesResp(JSONObject requestJson) {
 
         int term = Integer.valueOf(requestJson.get("term").toString());
         int candidateId = Integer.valueOf(requestJson.get("candidateId").toString());
@@ -31,21 +42,19 @@ public class AppendEntriesRPC {
 
 
         if (term < raftMachine.getCurrentTerm().intValue()) {
-            System.out.println("Term in request: " + term + " but I'm on term " + raftMachine.getCurrentTerm().intValue());
+            System.out.println("[F] Term in request: " + term + " but I'm on term " + raftMachine.getCurrentTerm().intValue());
             responseObj.put("term", raftMachine.getCurrentTerm());
             responseObj.put("success", false);
         } else {
-            if (term > raftMachine.getCurrentTerm().intValue()) { //If leader receives a append entry rpc
+            if (term > raftMachine.getCurrentTerm().intValue()) {
+                //If leader receives a append entry RPC with a higher term then the current term. Then go back to follower state
                 if (raftMachine.isTermLeader()) {
                     System.out.println("[L] Received a append entry RPC with a higher term then current term ");
                     raftMachine.setAsFollower();
                 }
-
-                System.out.println("Updating to term: " + term);
-                raftMachine.updateTerm(term);
+                raftMachine.appendEntryTermUpdate(term, candidateId);
             }
-
-            if (candidateId != raftMachine.getLeaderId()) {
+            if((candidateId != raftMachine.getLeaderId()) && (term == raftMachine.getCurrentTerm().intValue())){
                 raftMachine.updateLeaderInfo(candidateId);
             }
 
@@ -70,5 +79,4 @@ public class AppendEntriesRPC {
         }
         return responseObj.toJSONString();
     }
-
 }
