@@ -1,5 +1,4 @@
 import org.eclipse.jetty.http.HttpStatus;
-import org.json.simple.JSONObject;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;

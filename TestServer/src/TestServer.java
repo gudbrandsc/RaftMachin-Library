@@ -13,7 +13,7 @@ public class TestServer {
         String requestVotePath = "/requestvote";
         String appendEntryPath = "/appendentry";
         CountDownLatch latch = new CountDownLatch(1);
-        RaftMachine raftMachine = new RaftMachine(Integer.valueOf(args[2]), args[3], latch, requestVotePath, appendEntryPath);
+        RaftMachine raftMachine = new RaftMachine(candidateId, args[3], latch, requestVotePath, appendEntryPath);
 
         try {
             latch.await();
@@ -34,20 +34,9 @@ public class TestServer {
         handler.addServletWithMapping(new ServletHolder(new VoteReceiver(raftMachine)),  requestVotePath);
         handler.addServletWithMapping(new ServletHolder(new AppendRecieve(raftMachine)), appendEntryPath);
 
-        if(args[1].equals("1")){
-            System.out.println("Im leader");
-            raftMachine.setAsTermLeader();
-        }else {
-            String host = null;
-            try {
-                host = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException e) {
-                System.out.println("hoho");
-            }
-           // raftMachine.registerNode("localhost", 4400, "localhost",port , "/register");
-            raftMachine.setAsFollower();
+        raftMachine.setAsFollower();
 
-        }
+
 
         try {
             server.start();

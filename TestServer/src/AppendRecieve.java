@@ -1,7 +1,4 @@
-
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -13,11 +10,9 @@ public class AppendRecieve  extends HttpServlet{
 
 
     private RaftMachine raftMachine;
-    private FrontServiceHelper frontServiceHelper;
 
     public AppendRecieve(RaftMachine raftMachine){
         this.raftMachine = raftMachine;
-        this.frontServiceHelper = new FrontServiceHelper();
 
     }
 
