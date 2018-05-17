@@ -1,5 +1,3 @@
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -11,8 +9,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
+
 
 /**
  * @author Gudbrand Schistad
@@ -82,28 +79,6 @@ public class ServiceHelper {
     }
 
     /**
-     * Method that sends a post request and returns the http response
-     * @return http response status
-     */
-    public int sendPostRequest(String host, int port, String path, String body) {
-        try {
-            String url = "http://" + host + ":" + port + path;
-            URL obj = new URL(url);
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            con.setDoOutput(true);
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Content-type", "application/json");
-            OutputStreamWriter wr =  new OutputStreamWriter(con.getOutputStream());
-            wr.write(body);
-            wr.flush();
-            wr.close();
-            return con.getResponseCode();
-        } catch (IOException e) {
-            return 401;
-        }
-    }
-
-    /**
      * Method to read the InputStream and append it to a string
      * @param con between services
      * @return response string
@@ -121,23 +96,4 @@ public class ServiceHelper {
         return response.toString();
     }
 
-
-
-    /**
-     * Method that sends a get request and returns the Http status code
-     * @param host of target
-     * @param port of target
-     */
-    public int sendGetAndReturnStatus(String host, int port, String path){
-        try {
-            String url = "http://" + host + ":" + port + "/" + path;
-            URL obj = new URL(url);
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            con.setRequestMethod("GET");
-            return con.getResponseCode();
-
-        } catch (IOException e) {
-            return 401;
-        }
-    }
 }

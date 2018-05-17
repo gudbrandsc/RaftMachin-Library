@@ -407,7 +407,10 @@ public class RaftMachine {
             e.printStackTrace();
         }
     }
-
+    /**
+     * Method called by the constructor to check if there exist a persistent storage file, to read data from.
+     * @param latch to make sure server do not start before all data is read.
+     */
     private boolean checkIfFileExist(CountDownLatch latch){
         if(Files.exists(Paths.get(storageFile))) {
             System.out.println("[X]Found persistent storage file, adding committed data...");
@@ -420,6 +423,10 @@ public class RaftMachine {
         return false;
     }
 
+    /**
+     * Method that reads the persistent storage file, and adds data to inn memory data storage.
+     * Also updates all related variables to make sure it do not overwrite committed entries.
+     */
     private void readAndAddData(){
         JSONParser parser = new JSONParser();
 
@@ -440,6 +447,7 @@ public class RaftMachine {
                 readEntry.setCommited();
                 addReadData(readEntry);
             }
+
             this.nextEntryIndex.set(this.lastAppliedIndex + 1);
             System.out.println("-------------------------------");
             System.out.println("Last committed:  " + this.lastCommitIndex);
@@ -455,11 +463,13 @@ public class RaftMachine {
         }
     }
 
+    /**
+     * Method used to add a new entry to inn memory data storage.
+     */
     private void addReadData(LogEntry entry){
         if(entry.getEntryIndex() > this.lastAppliedIndex){
             this.lastAppliedIndex = entry.getEntryIndex();
             System.out.println("[X] Last applied index updated to: " + this.lastAppliedIndex);
-
         }
 
         if(entry.getEntryTerm() > this.lastAppliedTerm){
@@ -479,32 +489,4 @@ public class RaftMachine {
         this.committedEntries.add(buildStorageObject(entry));
         this.machineLog.add(entry);
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

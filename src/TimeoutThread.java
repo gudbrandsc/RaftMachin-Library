@@ -1,16 +1,15 @@
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.json.simple.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author gudbrandschistad
+ * Runnable class that checks if the term leader is alive.
+ */
 public class TimeoutThread implements Runnable {
     private RaftMachine raftMachine;
 
     /**
      * Constructor
+     * @param raftMachine current raft machine
      */
     public TimeoutThread(RaftMachine raftMachine) {
         this.raftMachine = raftMachine;
@@ -18,7 +17,9 @@ public class TimeoutThread implements Runnable {
     }
 
     /**
-     * Run method that sends a write request to a secondary
+     * Run method that checks if a append RPC have been received, using the timeout switch.
+     * If a append entry RPC is not received by the time interval, then set to CANDIDATE state
+     * else flip heartbeat switch off
      */
     @Override
     public void run() {
